@@ -1,76 +1,78 @@
 import streamlit as st
 import numpy as np
-import joblib
+import pickle
 
-# Load model and normalization values
-theta = joblib.load('manual_model.pkl')
-mean = joblib.load('mean.pkl')
-std = joblib.load('std.pkl')
-
-# Ensure mean and std are flat arrays
-mean = np.array(mean).flatten()
-std = np.array(std).flatten()
-
-# Define prediction function
-def predict(features):
-    features = np.array(features).reshape(1, -1)
-
-    if features.shape[1] != mean.shape[0]:
-        raise ValueError(f"Mismatch in features vs mean/std shapes: features {features.shape}, mean {mean.shape}, std {std.shape}")
-
-    # Apply Z-score normalization to all features
-    features = (features - mean) / std
-
-    # Add bias term (1 for theta_0)
-    features = np.insert(features, 0, 1, axis=1)
-
-    return float(features @ theta)
-
-# Streamlit UI
 st.title("Student Performance Predictor")
+st.write("Fill in the student information to predict their math score.")
 
-# Input fields — adjust based on your trained model
-gender = st.selectbox("Gender", ["male", "female"])
-race = st.selectbox("Race/Ethnicity", ["group A", "group B", "group C", "group D"])
+# Input fields
+gender = st.selectbox("Gender", ["female", "male"])
+race = st.selectbox("Race/Ethnicity", ["group A", "group B", "group C", "group D", "group E"])
 parent_edu = st.selectbox("Parental Level of Education", [
-    "high school", "some college", "associate's degree", "bachelor's degree", "master's degree"
+    "some high school", "high school", "some college",
+    "associate's degree", "bachelor's degree", "master's degree"
 ])
 lunch = st.selectbox("Lunch Type", ["standard", "free/reduced"])
 prep = st.selectbox("Test Preparation Course", ["none", "completed"])
-reading_score = st.slider("Reading Score", min_value=0, max_value=100, step=1)
-writing_score = st.slider("Writing Score", min_value=0, max_value=100, step=1)
+reading_score = st.slider("Reading Score", 0, 100, 50)
+writing_score = st.slider("Writing Score", 0, 100, 50)
 
-# Encode categorical features manually (must match training time encoding)
-def encode_features(gender, race, parent_edu, lunch, prep):
-    encoding = []
+def encode_features(gender, race, parent_edu, lunch, prep, reading_score, writing_score):
+    features = []
 
-    # Example: 1 for male, 0 for female
-    encoding.append(1 if gender == "male" else 0)
+    # Gender: 0 = female, 1 = male
+    features.append(1 if gender == 'male' else 0)
 
-    # Race one-hot (example — must match your training encoding order)
-    races = ["group A", "group B", "group C", "group D", "group E"]
-    encoding += [1 if race == r else 0 for r in races]
+    # Race one-hot (drop 'group A')
+    races = ['group B', 'group C', 'group D', 'group E']
+    features += [1 if race == r else 0 for r in races]
 
-    # Parental education one-hot
-    educ_levels = ["some high school", "high school", "some college", "associate's degree", "bachelor's degree", "master's degree"]
-    encoding += [1 if parent_edu == level else 0 for level in educ_levels]
+    # Parental education one-hot (drop 'some high school')
+    edu_levels = [
+        "high school",
+        "some college",
+        "associate's degree",
+        "bachelor's degree",
+        "master's degree"
+    ]
+    features += [1 if parent_edu == level else 0 for level in edu_levels]
 
-    # Lunch: 1 for standard, 0 for free/reduced
-    encoding.append(1 if lunch == "standard" else 0)
+    # Lunch
+    features.append(1 if lunch == 'standard' else 0)
 
-    # Test prep: 1 if completed, 0 if none
-    encoding.append(1 if prep == "completed" else 0)
+    # Prep course
+    features.append(1 if prep == 'completed' else 0)
 
-    return encoding
+    # Scores
+    features.append(reading_score)
+    features.append(writing_score)
 
-# Collect inputs
-encoded_inputs = encode_features(gender, race, parent_edu, lunch, prep)
-numeric_inputs = [reading_score, writing_score]
-input_features = encoded_inputs + numeric_inputs
+    return np.array(features)
 
-# Predict button
+def predict(input_features):
+    features = np.array(input_features).reshape(1, -1)
+
+    # Load mean and std
+    with open("mean.pkl", "rb") as f:
+        mean = pickle.load(f)
+    with open("std.pkl", "rb") as f:
+        std = pickle.load(f)
+
+    if features.shape[1] != len(mean):
+        raise ValueError(f"Mismatch in features vs mean/std shapes: features {features.shape[1]}, mean {len(mean)}, std {len(std)}")
+
+    # Normalize all features
+    normed = (features - mean) / std
+
+    # Load model
+    with open("model.pkl", "rb") as f:
+        model = pickle.load(f)
+
+    return model.predict(normed)[0]
+
 if st.button("Predict Math Score"):
     try:
+        input_features = encode_features(gender, race, parent_edu, lunch, prep, reading_score, writing_score)
         prediction = predict(input_features)
         st.success(f"Predicted Math Score: {prediction:.2f}")
     except Exception as e:
