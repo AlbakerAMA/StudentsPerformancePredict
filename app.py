@@ -1,6 +1,8 @@
 import streamlit as st
 import numpy as np
 import pickle
+from joblib import load
+
 
 st.title("Student Performance Predictor")
 st.write("Fill in the student information to predict their math score.")
@@ -54,9 +56,9 @@ def predict(input_features):
 
     # Load mean and std
     with open("mean.pkl", "rb") as f:
-        mean = pickle.load(f)
+        mean = load(f)
     with open("std.pkl", "rb") as f:
-        std = pickle.load(f)
+        std = load(f)
 
     if features.shape[1] != len(mean):
         raise ValueError(f"Mismatch in features vs mean/std shapes: features {features.shape[1]}, mean {len(mean)}, std {len(std)}")
@@ -66,7 +68,7 @@ def predict(input_features):
 
     # Load model
     with open("model.pkl", "rb") as f:
-        model = pickle.load(f)
+        model = load(f)
 
     return model.predict(normed)[0]
 
