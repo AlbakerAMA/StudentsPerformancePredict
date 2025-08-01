@@ -67,7 +67,7 @@ def predict(input_features):
     normed = (features - mean) / std
 
     # Load model
-    with open("model.pkl", "rb") as f:
+    with open("manual_model.pkl", "rb") as f:
         model = load(f)
 
     return model.predict(normed)[0]
