@@ -31,9 +31,9 @@ st.title("Student Performance Predictor")
 
 # Input fields — adjust based on your trained model
 gender = st.selectbox("Gender", ["male", "female"])
-race = st.selectbox("Race/Ethnicity", ["group A", "group B", "group C", "group D", "group E"])
+race = st.selectbox("Race/Ethnicity", ["group A", "group B", "group C", "group D"])
 parent_edu = st.selectbox("Parental Level of Education", [
-    "some high school", "high school", "some college", "associate's degree", "bachelor's degree", "master's degree"
+    "high school", "some college", "associate's degree", "bachelor's degree", "master's degree"
 ])
 lunch = st.selectbox("Lunch Type", ["standard", "free/reduced"])
 prep = st.selectbox("Test Preparation Course", ["none", "completed"])
