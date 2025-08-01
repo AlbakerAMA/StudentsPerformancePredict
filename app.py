@@ -24,16 +24,25 @@ def one_hot_encode(value, options):
 # Define prediction function
 def predict(features):
     features = np.array(features).reshape(1, -1)
-    
-    # Normalize numeric features (last two)
+
+    # Convert mean and std to flat NumPy arrays if not already
+    global mean, std
+    mean = np.array(mean).flatten()
+    std = np.array(std).flatten()
+
+    # Make sure mean and std only apply to the last two features
     numeric = features[:, -2:].astype(float)
-    normed = (numeric - np.array(mean)) / np.array(std)
+
+    if mean.shape[0] != 2 or std.shape[0] != 2:
+        raise ValueError(f"Expected mean and std of shape (2,), got mean {mean.shape}, std {std.shape}")
+
+    # Normalize
+    normed = (numeric - mean) / std
     features[:, -2:] = normed
 
-    # Add bias term
+    # Add bias term (1 for theta_0)
     features = np.insert(features, 0, 1, axis=1)
     return float(features @ theta)
-
 
 # Streamlit UI
 st.title("Predict Your Math Score")
