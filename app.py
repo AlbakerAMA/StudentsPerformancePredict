@@ -29,10 +29,16 @@ def one_hot_encode(value, options):
 def predict(features):
     features = np.array(features, dtype=float).reshape(1, -1)
     
-    # The model expects 14 features total (12 categorical + 2 numerical)
-    # So we need to normalize only the last 2 features (reading, writing scores)
-    if features.shape[1] >= 2:
-        # Normalize only the last 2 features (reading and writing scores)
+    # Normalize features using the saved mean and std
+    # Check if mean and std are arrays (normalized all features) or scalars (normalized only numerical)
+    if hasattr(mean, 'shape') and len(mean.shape) > 0 and mean.shape[0] == features.shape[1]:
+        # Mean and std were calculated for all features
+        features = (features - mean) / std
+    elif hasattr(mean, 'shape') and len(mean.shape) > 0 and mean.shape[0] == 2:
+        # Mean and std were calculated only for the last 2 features (reading, writing)
+        features[:, -2:] = (features[:, -2:] - mean) / std
+    else:
+        # Mean and std are scalars - apply to last 2 features
         features[:, -2:] = (features[:, -2:] - mean) / std
     
     # Add bias term (intercept) at the beginning  
