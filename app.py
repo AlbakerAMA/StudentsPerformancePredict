@@ -1,8 +1,6 @@
 import streamlit as st
 import numpy as np
-import pickle
-from joblib import load
-
+import joblib
 
 st.title("Student Performance Predictor")
 st.write("Fill in the student information to predict their math score.")
@@ -52,25 +50,25 @@ def encode_features(gender, race, parent_edu, lunch, prep, reading_score, writin
     return np.array(features)
 
 def predict(input_features):
+    # Load model coefficients (theta), mean and std
+    theta = joblib.load('manual_model.pkl')
+    mean = joblib.load('mean.pkl')
+    std = joblib.load('std.pkl')
+
     features = np.array(input_features).reshape(1, -1)
-
-    # Load mean and std
-    with open("mean.pkl", "rb") as f:
-        mean = load(f)
-    with open("std.pkl", "rb") as f:
-        std = load(f)
-
+    
+    # Verify feature dimensions
     if features.shape[1] != len(mean):
-        raise ValueError(f"Mismatch in features vs mean/std shapes: features {features.shape[1]}, mean {len(mean)}, std {len(std)}")
-
-    # Normalize all features
-    normed = (features - mean) / std
-
-    # Load model
-    with open("manual_model.pkl", "rb") as f:
-        model = load(f)
-
-    return model.predict(normed)[0]
+        raise ValueError(f"Mismatch in features vs mean/std shapes: features {features.shape[1]}, mean {len(mean)}")
+    
+    # Normalize features
+    features = (features - mean) / std
+    
+    # Add bias term (intercept) and make prediction
+    features_with_bias = np.insert(features, 0, 1, axis=1)  # Add column of 1s for bias term
+    prediction = features_with_bias @ theta.T  # Matrix multiplication
+    
+    return float(prediction)
 
 if st.button("Predict Math Score"):
     try:
