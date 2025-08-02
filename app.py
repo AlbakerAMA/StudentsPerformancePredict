@@ -43,7 +43,7 @@ def encode_features(gender, race, parent_edu, lunch, prep, reading_score, writin
     # Prep course
     features.append(1 if prep == 'completed' else 0)
 
-    # Scores
+    # Scores (don't normalize these yet - they'll be normalized in predict())
     features.append(reading_score)
     features.append(writing_score)
 
@@ -61,14 +61,18 @@ def predict(input_features):
     if features.shape[1] != len(mean):
         raise ValueError(f"Mismatch in features vs mean/std shapes: features {features.shape[1]}, mean {len(mean)}")
     
-    # Normalize features
-    features = (features - mean) / std
+    # Normalize only the numerical features (reading and writing scores)
+    # Assuming the last two features are reading and writing scores
+    features[:, -2:] = (features[:, -2:] - mean[-2:]) / std[-2:]
     
     # Add bias term (intercept) and make prediction
     features_with_bias = np.insert(features, 0, 1, axis=1)  # Add column of 1s for bias term
     prediction = features_with_bias @ theta.T  # Matrix multiplication
     
-    return float(prediction)
+    # Clip prediction to reasonable score range (0-100)
+    prediction = np.clip(float(prediction), 0, 100)
+    
+    return prediction
 
 if st.button("Predict Math Score"):
     try:
